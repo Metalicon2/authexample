@@ -1,65 +1,72 @@
-import Head from 'next/head'
-import styles from '../styles/Home.module.css'
+import styles from "../styles/Home.module.css";
+import React, { useState, useEffect } from "react";
+import { Cookies } from "react-cookie";
+import API from "../utils/API";
+import Link from "next/link";
+
+const cookie = new Cookies();
 
 export default function Home() {
+  const [loginData, setLoginData] = useState({});
+  const [tokenState, setTokenState] = useState("");
+  const [isValid, setIsValid] = useState(false);
+
+  const handleChange = (name, value) => {
+    setLoginData({ ...loginData, [name]: value });
+  };
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      console.log("calling api...");
+      callAPI();
+    }, 5000);
+    return () => clearInterval(id);
+  });
+
+  const callAPI = () => {
+    API.get("/token/ping", {
+      headers: {
+        Authorization: tokenState
+      }
+    })
+    .then(res => res.data.status === 401 && setIsValid(false))
+  }
+
+  const onClick = async () => {
+    const res = await API.post("/user/login", loginData.email && loginData.password ? {
+      ...loginData
+    } : {email: "", password: ""});
+    if(res.data.status === 200){
+      setTokenState(res.data.token);
+      setIsValid(true);
+      cookie.set("token", res.data.token);
+      console.log("sikeres bejelentkezés");
+    }
+    else{
+      window.alert(res.data.msg);
+    }
+  }
+
   return (
     <div className={styles.container}>
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className={styles.card}
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel Logo" className={styles.logo} />
-        </a>
-      </footer>
+      <Link href="/secret">
+        <a>Go to this secret Page!</a>
+      </Link>
+      <p>Token: {isValid ? "Valid Token" : "INVALID TOKEN!"}</p>
+      <h3>Login</h3>
+      <label>E-mail</label>
+      <input
+        name="email"
+        type="text"
+        onChange={(e) => handleChange(e.target.name, e.target.value)}
+      />
+      <label>Password</label>
+      <input
+        name="password"
+        type="password"
+        onChange={(e) => handleChange(e.target.name, e.target.value)}
+      />
+      <button style={{ margin: "20px 0" }} onClick={() => onClick()}>Login!</button>
     </div>
-  )
+  );
 }
